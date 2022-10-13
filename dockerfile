@@ -16,37 +16,19 @@ RUN curl -Lo /InvokeAI/models/ldm/stable-diffusion-v1/model.ckpt https://cloudfl
 RUN wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
 RUN tar zxvf ngrok-v3-stable-linux-amd64.tgz
 
-ENV authtoken 1234
-ENV port 5000
+ENV authtoken=
 
-RUN apt install nginx -y
-RUN echo "server { \
-    listen 80; server_name _; \
-    location / { include proxy_params; proxy_pass http://127.0.0.1:5000; } \
-    location /static { alias <path-to-your-application>/static; expires 30d; } \
-    location /socket.io { \
-        include proxy_params; \
-        proxy_http_version 1.1; \
-        proxy_buffering off; \
-        proxy_set_header Upgrade \$http_upgrade; \
-        proxy_set_header Connection \"Upgrade\"; \
-        proxy_pass http://127.0.0.1:5000/socket.io; \
-    }}" > /etc/nginx/sites-available/default
+# update torch for rtx 3090
+RUN pip install torch==1.12.0+cu116 torchvision==0.13.0+cu116 torchaudio==0.12.0 --extra-index-url https://download.pytorch.org/whl/cu116
+RUN pip cache purge
 
 RUN echo "\n" > startup.sh
-
-RUN echo "service nginx restart \n" > startup.sh
+# RUN echo "service nginx restart \n" > startup.sh
 RUN echo "./ngrok config add-authtoken \${authtoken} \n" >> startup.sh
-RUN echo "./ngrok http 80 & \n" >> startup.sh
+RUN echo "./ngrok http 5000 & \n" >> startup.sh
 RUN echo "python3 scripts/invoke.py --web --host 0.0.0.0 --port 5000" >> startup.sh
 RUN chmod +x startup.sh
 
-
-# https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-386.tgz
-
-# CMD [ "python3 scripts/invoke.py --web --host 0.0.0.0 --port 9090 &"]
-
-# CMD ["cd /InvokeAI && python3 scripts/invoke.py --web --host 0.0.0.0 --port ${port}"]
-
-
+# window.location.protocol
+COPY frontend/dist/assets/index.989a0ca2.js frontend/dist/assets/index.989a0ca2.js
 CMD ["/bin/bash", "startup.sh"]
